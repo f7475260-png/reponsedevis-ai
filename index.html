@@ -1,0 +1,1278 @@
+import React, { useState } from 'react';
+import {
+  FileText,
+  Users,
+  Bot,
+  LayoutDashboard,
+  Settings,
+  LogOut,
+  Plus,
+  Search,
+  ChevronRight,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle2,
+  Clock,
+  Building2,
+  Phone,
+  Mail,
+  MapPin,
+  Euro,
+  Sparkles,
+  ArrowUpRight,
+  ShieldCheck,
+  Zap,
+  Check,
+  X,
+  Menu,
+  Download,
+  Eye,
+  Bell,
+  Calendar,
+  Filter,
+  SlidersHorizontal
+} from 'lucide-react';
+
+// --- INITIAL STATE / MOCK DATA ---
+
+const MOCK_CLIENTS = [
+  { id: '1', name: 'Jean Dupont', company: 'Dupont Rénovation', email: 'jean.dupont@email.fr', phone: '06 12 34 56 78', address: '14 Rue de la Paix, 75002 Paris', totalQuotes: 3, pendingTotal: 4500, status: 'Actif' },
+  { id: '2', name: 'Marie Curie', company: 'SCIA Immobilier', email: 'm.curie@scia-immo.fr', phone: '07 89 01 23 45', address: '8 Avenue Victor Hugo, 69002 Lyon', totalQuotes: 5, pendingTotal: 12800, status: 'Actif' },
+  { id: '3', name: 'Pierre Martin', company: 'Martin Sarl', email: 'p.martin@martin-btp.fr', phone: '06 55 44 33 22', address: '3 Boulevard Voltaire, 13001 Marseille', totalQuotes: 1, pendingTotal: 0, status: 'Inactif' },
+];
+
+const MOCK_QUOTES = [
+  { id: 'DEV-2026-001', clientName: 'Jean Dupont', date: '2026-11-02', amount: 3250.00, status: 'Signé', title: 'Rénovation Salle de Bain Complète' },
+  { id: 'DEV-2026-002', clientName: 'Marie Curie', date: '2026-11-05', amount: 8400.00, status: 'En attente', title: 'Isolation des combles perdues 120m²' },
+  { id: 'DEV-2026-003', clientName: 'Pierre Martin', date: '2026-10-28', amount: 1550.00, status: 'Refusé', title: 'Remise aux normes tableau électrique' },
+  { id: 'DEV-2026-004', clientName: 'Jean Dupont', date: '2026-11-08', amount: 1250.00, status: 'Brouillon', title: 'Pose Carrelage Cuisine' },
+];
+
+export default function App() {
+  // Navigation State
+  const [currentPage, setCurrentPage] = useState('dashboard'); // 'landing', 'login', 'dashboard', 'quotes', 'clients', 'ai-assistant', 'settings'
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [user, setUser] = useState({ name: 'Thomas Bernard', company: 'Bernard Électricité & Rénov', email: 'contact@bernard-electricite.fr' });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [timeRange, setTimeRange] = useState('3M');
+
+  // App Data State
+  const [quotes, setQuotes] = useState(MOCK_QUOTES);
+  const [clients, setClients] = useState(MOCK_CLIENTS);
+  
+  // AI Assistant State
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiGeneratedQuote, setAiGeneratedQuote] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Modals
+  const [showNewQuoteModal, setShowNewQuoteModal] = useState(false);
+  const [newQuoteData, setNewQuoteData] = useState({ clientName: '', title: '', amount: '', status: 'Brouillon' });
+
+  const [showNewClientModal, setShowNewClientModal] = useState(false);
+  const [newClientData, setNewClientData] = useState({ name: '', company: '', email: '', phone: '', address: '' });
+
+  // Notifications
+  const [toast, setToast] = useState(null);
+
+  const showNotification = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setIsAuthenticated(true);
+    setUser({ name: 'Thomas Bernard', company: 'Bernard Électricité & Rénov', email: 'contact@bernard-electricite.fr' });
+    setCurrentPage('dashboard');
+    showNotification('Connexion réussie ! Bienvenue sur RéponseDevis AI');
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUser(null);
+    setCurrentPage('landing');
+    showNotification('Vous avez été déconnecté.');
+  };
+
+  const handleCreateQuote = (e) => {
+    e.preventDefault();
+    const created = {
+      id: `DEV-2026-00${quotes.length + 1}`,
+      clientName: newQuoteData.clientName || 'Client anonyme',
+      date: new Date().toISOString().split('T')[0],
+      amount: parseFloat(newQuoteData.amount) || 0,
+      status: newQuoteData.status,
+      title: newQuoteData.title || 'Prestation sur mesure'
+    };
+    setQuotes([created, ...quotes]);
+    setShowNewQuoteModal(false);
+    setNewQuoteData({ clientName: '', title: '', amount: '', status: 'Brouillon' });
+    showNotification(`Devis ${created.id} créé avec succès !`);
+  };
+
+  const handleCreateClient = (e) => {
+    e.preventDefault();
+    const created = {
+      id: String(clients.length + 1),
+      ...newClientData,
+      totalQuotes: 0,
+      pendingTotal: 0,
+      status: 'Actif'
+    };
+    setClients([...clients, created]);
+    setShowNewClientModal(false);
+    setNewClientData({ name: '', company: '', email: '', phone: '', address: '' });
+    showNotification(`Client ${created.name} ajouté aux contacts.`);
+  };
+
+  const handleGenerateAIQuote = (e) => {
+    e.preventDefault();
+    if (!aiPrompt.trim()) return;
+
+    setIsGenerating(true);
+    setTimeout(() => {
+      setIsGenerating(false);
+      setAiGeneratedQuote({
+        title: 'Rénovation & Mise aux normes électrique complète',
+        clientName: 'Nouveau Client Proposé',
+        items: [
+          { description: 'Dépose de l ancien tableau & repérage des circuits', qty: 1, unitPrice: 350, total: 350 },
+          { description: 'Fourniture et pose d un tableau Schneider Electric 4 rangées', qty: 1, unitPrice: 850, total: 850 },
+          { description: 'Tirage de lignes sécurisées pour cuisine équipée (32A & 20A)', qty: 4, unitPrice: 180, total: 720 },
+          { description: 'Installation appareillage Odace blanc (prises + interrupteurs)', qty: 25, unitPrice: 32, total: 800 },
+          { description: 'Attestation Consuel et vérification de conformité NF C 15-100', qty: 1, unitPrice: 280, total: 280 }
+        ],
+        subtotal: 3000,
+        vat: 300,
+        total: 3300,
+        notes: 'Garantie décennale incluse. Acompte de 30% requis à la signature du devis.'
+      });
+      showNotification('Devis généré avec succès par l\'IA !');
+    }, 1500);
+  };
+
+  // Render navigation bar
+  const renderSidebar = () => {
+    const navItems = [
+      { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+      { id: 'quotes', label: 'Gestion des Devis', icon: FileText },
+      { id: 'clients', label: 'Gestion Clients', icon: Users },
+      { id: 'ai-assistant', label: 'Assistant IA', icon: Bot, badge: 'Pro' },
+      { id: 'settings', label: 'Paramètres', icon: Settings },
+    ];
+
+    return (
+      <aside className="w-64 bg-white border-r border-slate-200/80 text-slate-700 flex flex-col justify-between hidden md:flex shrink-0 shadow-sm">
+        <div>
+          {/* Logo */}
+          <div className="p-6 border-b border-slate-100 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-blue-500/20">
+              R
+            </div>
+            <div>
+              <h1 className="font-bold text-slate-900 text-lg leading-tight tracking-tight">RéponseDevis<span className="text-blue-600">.ai</span></h1>
+              <span className="text-xs text-slate-400 font-medium">SaaS B2B Artisans</span>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="p-4 space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPage === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setCurrentPage(item.id)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span className={`px-2 py-0.5 text-[10px] uppercase font-extrabold tracking-wider rounded ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600 border border-blue-100'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* User Footer */}
+        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+          <div className="p-3 rounded-xl bg-white border border-slate-200/70 mb-3 flex items-center gap-3 shadow-xs">
+            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+              TB
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-xs font-bold text-slate-900 truncate">{user?.name || 'Artisan Utilisateur'}</p>
+              <p className="text-[11px] text-slate-500 truncate">{user?.company || 'Entreprise BTP'}</p>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
+          >
+            <LogOut className="w-4 h-4" />
+            Déconnexion
+          </button>
+        </div>
+      </aside>
+    );
+  };
+
+  // Header Bar
+  const renderHeader = (title, subtitle) => {
+    return (
+      <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden text-slate-600 hover:text-slate-900 p-1"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">{title}</h1>
+            {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Quick Search */}
+          <div className="hidden sm:flex items-center gap-2 bg-slate-100 border border-slate-200/80 px-3 py-1.5 rounded-xl text-xs text-slate-400 w-56">
+            <Search className="w-3.5 h-3.5" />
+            <span className="flex-1">Rechercher...</span>
+            <span className="bg-white px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 border border-slate-200">⌘K</span>
+          </div>
+
+          <button className="p-2 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/70 rounded-xl transition relative">
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+          </button>
+
+          <button
+            onClick={() => setCurrentPage('ai-assistant')}
+            className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Créer Devis IA
+          </button>
+        </div>
+      </header>
+    );
+  };
+
+  // --- PAGES ---
+
+  // 1. LANDING PAGE
+  const renderLandingPage = () => (
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">
+      <nav className="max-w-7xl w-full mx-auto px-6 py-5 flex items-center justify-between bg-white border-b border-slate-200 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-2xl shadow-md shadow-blue-500/20">
+            R
+          </div>
+          <span className="font-extrabold text-xl text-slate-900 tracking-tight">RéponseDevis<span className="text-blue-600">.ai</span></span>
+        </div>
+        <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600">
+          <a href="#features" className="hover:text-blue-600 transition">Fonctionnalités</a>
+          <a href="#pricing" className="hover:text-blue-600 transition">Tarifs</a>
+          <a href="#testimonials" className="hover:text-blue-600 transition">Témoignages</a>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setCurrentPage('login')}
+            className="px-4 py-2 text-sm font-bold text-slate-700 hover:text-blue-600 transition"
+          >
+            Connexion
+          </button>
+          <button
+            onClick={() => setCurrentPage('login')}
+            className="px-4 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md shadow-blue-600/20 transition"
+          >
+            Essai Gratuit 14 Jours
+          </button>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="max-w-5xl mx-auto px-6 pt-16 pb-16 text-center flex flex-col items-center">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold mb-8">
+          <Sparkles className="w-3.5 h-3.5" />
+          Intelligence Artificielle française dédiée au bâtiment
+        </div>
+        <h1 className="text-4xl md:text-6xl font-black text-slate-900 leading-tight tracking-tight mb-6">
+          Divisez par 5 le temps passé sur vos <span className="text-blue-600">Devis BTP</span>
+        </h1>
+        <p className="text-lg md:text-xl text-slate-600 max-w-2xl mb-10 leading-relaxed font-medium">
+          Solution logicielle complète pour artisans, électriciens, plombiers et entreprises du bâtiment.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <button
+            onClick={() => setCurrentPage('login')}
+            className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-xl shadow-lg shadow-blue-600/25 transition flex items-center justify-center gap-2"
+          >
+            Lancer un Devis IA Instantané
+            <ArrowUpRight className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setCurrentPage('dashboard')}
+            className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-base rounded-xl shadow-xs transition"
+          >
+            Accéder à la Démo Tableau de bord
+          </button>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="bg-white py-20 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Fonctionnalités pensées pour le terrain</h2>
+            <p className="text-slate-600 text-sm font-medium">Simplifiez votre gestion administrative au quotidien.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 hover:border-blue-300 transition shadow-xs">
+              <div className="w-12 h-12 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center mb-6">
+                <Zap className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Chiffreur IA Automatique</h3>
+              <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                Saisissez un résumé textuel ou vocal et laissez l'IA créer vos lignes de devis selon les prix du marché.
+              </p>
+            </div>
+            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 hover:border-blue-300 transition shadow-xs">
+              <div className="w-12 h-12 rounded-xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center mb-6">
+                <Users className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Suivi & Relances Clients</h3>
+              <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                Suivez les devis consultés, envoyez des rappels automatiques et convertissez plus rapidement vos prospects.
+              </p>
+            </div>
+            <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 hover:border-blue-300 transition shadow-xs">
+              <div className="w-12 h-12 rounded-xl bg-emerald-600/10 text-emerald-600 flex items-center justify-center mb-6">
+                <ShieldCheck className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">Conformité Légale BTP</h3>
+              <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                Mention assurance décennale, TVA 5.5/10/20% et export PDF conforme aux règles françaises.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-20 max-w-7xl mx-auto px-6 w-full">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Abonnements sans engagement</h2>
+          <p className="text-slate-600 text-sm font-medium">Testez gratuitement pendant 14 jours.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto gap-8">
+          <div className="p-8 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between shadow-xs">
+            <div>
+              <h3 className="text-xl font-bold text-slate-900">Artisan Indépendant</h3>
+              <p className="text-xs text-slate-500 mt-1">Pour auto-entrepreneurs et artisans individuels</p>
+              <div className="my-6">
+                <span className="text-4xl font-black text-slate-900">29€</span>
+                <span className="text-slate-500 text-sm font-medium"> / mois HT</span>
+              </div>
+              <ul className="space-y-3 text-sm text-slate-600 font-medium">
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> 30 devis IA / mois</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Gestion clients illimitée</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600" /> Export PDF propre</li>
+              </ul>
+            </div>
+            <button
+              onClick={() => setCurrentPage('login')}
+              className="mt-8 w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm rounded-xl transition"
+            >
+              Choisir Standard
+            </button>
+          </div>
+
+          <div className="p-8 rounded-2xl bg-white border-2 border-blue-600 flex flex-col justify-between shadow-lg relative">
+            <span className="absolute -top-3 right-6 px-3 py-1 bg-blue-600 text-white text-[10px] font-black uppercase rounded-full tracking-wider">
+              Recommandé
+            </span>
+            <div>
+              <h3 className="text-xl font-bold text-slate-900">Entreprise BTP Pro</h3>
+              <p className="text-xs text-blue-600 font-semibold mt-1">Pour TPE du bâtiment et équipes de chantier</p>
+              <div className="my-6">
+                <span className="text-4xl font-black text-slate-900">59€</span>
+                <span className="text-slate-500 text-sm font-medium"> / mois HT</span>
+              </div>
+              <ul className="space-y-3 text-sm text-slate-700 font-medium">
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-600" /> Devis IA **Illimités**</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-600" /> Relances automatiques</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-blue-600" /> Multi-comptes utilisateurs</li>
+              </ul>
+            </div>
+            <button
+              onClick={() => setCurrentPage('login')}
+              className="mt-8 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-md transition"
+            >
+              Démarrer en Pro
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+
+  // 2. LOGIN PAGE
+  const renderLoginPage = () => (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-white rounded-2xl border border-slate-200 p-8 shadow-xl">
+        <div className="flex justify-center mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-black text-2xl shadow-md shadow-blue-500/20">
+            R
+          </div>
+        </div>
+        <h2 className="text-2xl font-black text-center text-slate-900 mb-1">Espace Artisan</h2>
+        <p className="text-xs text-slate-500 text-center mb-8 font-medium">Saisissez vos identifiants pour continuer</p>
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Adresse Email</label>
+            <input
+              type="email"
+              required
+              defaultValue="artisan@bernard-electricite.fr"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Mot de passe</label>
+            <input
+              type="password"
+              required
+              defaultValue="password123"
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white transition"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition"
+          >
+            Connexion au Tableau de Bord
+          </button>
+        </form>
+
+        <div className="mt-6 pt-6 border-t border-slate-100 text-center text-xs text-slate-500 font-medium">
+          Pas encore inscrit ?{' '}
+          <button onClick={() => setCurrentPage('landing')} className="text-blue-600 font-bold hover:underline">
+            Créer un compte
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 3. DASHBOARD PAGE (INSPIRATION IMAGE RÉFÉRENCE)
+  const renderDashboardPage = () => {
+    return (
+      <div className="space-y-6">
+        {/* Top Header Controls (Superdesign Style Dark Card Frame) */}
+        <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-xl space-y-6 border border-slate-800">
+          
+          {/* Section Title & Bar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-white">Activité & Analytics Devis</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Données en temps réel • Mise à jour il y a 2 min</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search Bar */}
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-xl text-xs text-slate-300 w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher devis, clients..."
+                  className="bg-transparent border-none outline-none text-xs text-white placeholder-slate-500 w-full"
+                />
+                <span className="bg-slate-700 text-[10px] px-1.5 py-0.5 rounded text-slate-300 font-mono">⌘K</span>
+              </div>
+
+              {/* Time Selector */}
+              <div className="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-xl text-xs text-slate-300 cursor-pointer">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <span>Derniers 30 jours</span>
+              </div>
+
+              {/* Notification Button */}
+              <button className="p-2 bg-slate-800/80 border border-slate-700/60 rounded-xl text-slate-300 hover:text-white transition">
+                <Bell className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* 4 KPI Cards With Curved Sparklines (Inspired by Reference Image) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            {/* KPI 1 */}
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden group hover:border-slate-600 transition">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400">Chiffre d'Affaires</span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <TrendingUp className="w-3 h-3" /> +12.4%
+                </span>
+              </div>
+              <div className="my-3">
+                <div className="text-2xl font-black text-white">48,392 €</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">vs 43 041 € pér. préc.</div>
+              </div>
+              {/* Sparkline SVG */}
+              <div className="h-8 w-full pt-1">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 100 30" fill="none">
+                  <path d="M0 25 C20 22, 30 15, 50 18 C70 20, 80 5, 100 2" stroke="#818cf8" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                </svg>
+              </div>
+            </div>
+
+            {/* KPI 2 */}
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden group hover:border-slate-600 transition">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400">Devis Envoyés</span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <TrendingUp className="w-3 h-3" /> +8.1%
+                </span>
+              </div>
+              <div className="my-3">
+                <div className="text-2xl font-black text-white">182</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">3.2 devis / jour</div>
+              </div>
+              {/* Sparkline SVG */}
+              <div className="h-8 w-full pt-1">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 100 30" fill="none">
+                  <path d="M0 20 C25 28, 40 10, 60 15 C75 20, 85 5, 100 3" stroke="#34d399" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                </svg>
+              </div>
+            </div>
+
+            {/* KPI 3 */}
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden group hover:border-slate-600 transition">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400">Taux de Signature</span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <TrendingUp className="w-3 h-3" /> +2.3%
+                </span>
+              </div>
+              <div className="my-3">
+                <div className="text-2xl font-black text-white">74.6%</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">Objectif 70% atteint</div>
+              </div>
+              {/* Sparkline SVG */}
+              <div className="h-8 w-full pt-1">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 100 30" fill="none">
+                  <path d="M0 18 C20 15, 45 25, 65 12 C80 5, 90 8, 100 2" stroke="#38bdf8" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                </svg>
+              </div>
+            </div>
+
+            {/* KPI 4 */}
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 flex flex-col justify-between relative overflow-hidden group hover:border-slate-600 transition">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-400">Taux de Refus</span>
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                  <TrendingDown className="w-3 h-3" /> -0.6%
+                </span>
+              </div>
+              <div className="my-3">
+                <div className="text-2xl font-black text-white">3.2%</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">En baisse par rapport à M-1</div>
+              </div>
+              {/* Sparkline SVG */}
+              <div className="h-8 w-full pt-1">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 100 30" fill="none">
+                  <path d="M0 5 C30 8, 50 20, 70 18 C85 16, 95 28, 100 28" stroke="#f43f5e" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                </svg>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Main Chart Section + Side Breakdown (Superdesign Layout) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
+            
+            {/* Smooth Activity Curve Chart (Left 8 Cols) */}
+            <div className="lg:col-span-8 bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-sm font-bold text-white">Évolution de l'Activité Devis</h3>
+                  <p className="text-[11px] text-slate-400">Montants devisés comparés à l'année précédente</p>
+                </div>
+                <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-lg border border-slate-700/60 text-xs">
+                  {['1M', '3M', '6M', '1Y'].map((range) => (
+                    <button
+                      key={range}
+                      onClick={() => setTimeRange(range)}
+                      className={`px-2.5 py-1 rounded font-semibold text-[11px] transition ${
+                        timeRange === range ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {range}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Chart SVG Canvas */}
+              <div className="w-full h-52 relative my-2">
+                <svg className="w-full h-full" viewBox="0 0 500 180" preserveAspectRatio="none">
+                  {/* Grid Lines */}
+                  <line x1="0" y1="40" x2="500" y2="40" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+                  <line x1="0" y1="90" x2="500" y2="90" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+                  <line x1="0" y1="140" x2="500" y2="140" stroke="#334155" strokeWidth="1" strokeDasharray="3 3" />
+
+                  {/* Previous Year Line (Dotted) */}
+                  <path
+                    d="M 0 130 Q 80 140 160 110 T 320 90 T 500 80"
+                    fill="none"
+                    stroke="#64748b"
+                    strokeWidth="2"
+                    strokeDasharray="4 4"
+                  />
+
+                  {/* Current Year Line (Glow Curve) */}
+                  <path
+                    d="M 0 110 Q 80 80 160 95 T 320 45 T 500 25"
+                    fill="none"
+                    stroke="#6366f1"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+
+              {/* Chart Legend & Months */}
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-3 border-t border-slate-800">
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Année en cours</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span> Année précédente</span>
+                </div>
+                <div className="flex gap-6 font-mono text-[10px]">
+                  <span>FÉV</span>
+                  <span>MAR</span>
+                  <span>AVR</span>
+                  <span>MAI</span>
+                  <span>JUIN</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature Adoption / Categories Breakdown (Right 4 Cols) */}
+            <div className="lg:col-span-4 bg-slate-800/40 border border-slate-700/50 rounded-xl p-5 flex flex-col justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white mb-1">Répartition des Métiers</h3>
+                <p className="text-[11px] text-slate-400 mb-6">% des devis générés par type de lot</p>
+
+                <div className="space-y-4">
+                  {/* Item 1 */}
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                      <span>Électricité & Tableau</span>
+                      <span className="font-mono text-indigo-400">85%</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: '85%' }}></div>
+                    </div>
+                  </div>
+
+                  {/* Item 2 */}
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                      <span>Plomberie & Sanitaires</span>
+                      <span className="font-mono text-blue-400">72%</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: '72%' }}></div>
+                    </div>
+                  </div>
+
+                  {/* Item 3 */}
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                      <span>Isolation & Cloisons</span>
+                      <span className="font-mono text-cyan-400">58%</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-cyan-400 rounded-full" style={{ width: '58%' }}></div>
+                    </div>
+                  </div>
+
+                  {/* Item 4 */}
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                      <span>Carrelage & Sols</span>
+                      <span className="font-mono text-emerald-400">42%</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-400 rounded-full" style={{ width: '42%' }}></div>
+                    </div>
+                  </div>
+
+                  {/* Item 5 */}
+                  <div>
+                    <div className="flex justify-between text-xs font-semibold text-slate-300 mb-1.5">
+                      <span>Peinture & Finitions</span>
+                      <span className="font-mono text-amber-400">28%</span>
+                    </div>
+                    <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-400 rounded-full" style={{ width: '28%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400 mt-4">
+                <span>Total 182 devis</span>
+                <span className="text-blue-400 hover:underline cursor-pointer font-medium">Exporter rapport</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Lower Table Section (Light Background for Contrast) */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-xs">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Derniers Devis en Cours</h3>
+              <p className="text-xs text-slate-500">Accès rapide aux dossiers récents</p>
+            </div>
+            <button
+              onClick={() => setCurrentPage('quotes')}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              Voir tous les devis <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  <th className="pb-3">Référence</th>
+                  <th className="pb-3">Client</th>
+                  <th className="pb-3">Prestation</th>
+                  <th className="pb-3">Montant HT</th>
+                  <th className="pb-3">Statut</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {quotes.map((q) => (
+                  <tr key={q.id} className="hover:bg-slate-50 transition">
+                    <td className="py-3 font-mono font-bold text-blue-600">{q.id}</td>
+                    <td className="py-3 font-bold text-slate-900">{q.clientName}</td>
+                    <td className="py-3 text-slate-600 max-w-[200px] truncate">{q.title}</td>
+                    <td className="py-3 font-black text-slate-900">{q.amount.toLocaleString('fr-FR')} €</td>
+                    <td className="py-3">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black ${
+                        q.status === 'Signé' ? 'bg-emerald-100 text-emerald-800' :
+                        q.status === 'En attente' ? 'bg-amber-100 text-amber-800' :
+                        q.status === 'Refusé' ? 'bg-rose-100 text-rose-800' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {q.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 4. QUOTES PAGE
+  const renderQuotesPage = () => (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Rechercher par référence, client..."
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-600 shadow-xs"
+          />
+        </div>
+        <button
+          onClick={() => setShowNewQuoteModal(true)}
+          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition"
+        >
+          <Plus className="w-4 h-4" /> Nouveau Devis
+        </button>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th className="p-4">Référence</th>
+                <th className="p-4">Intitulé</th>
+                <th className="p-4">Client</th>
+                <th className="p-4">Date</th>
+                <th className="p-4">Montant HT</th>
+                <th className="p-4">Statut</th>
+                <th className="p-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs">
+              {quotes.map((q) => (
+                <tr key={q.id} className="hover:bg-slate-50 transition">
+                  <td className="p-4 font-mono font-bold text-blue-600">{q.id}</td>
+                  <td className="p-4 font-bold text-slate-900">{q.title}</td>
+                  <td className="p-4 text-slate-600">{q.clientName}</td>
+                  <td className="p-4 text-slate-500">{q.date}</td>
+                  <td className="p-4 font-black text-slate-900">{q.amount.toLocaleString('fr-FR')} €</td>
+                  <td className="p-4">
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                      q.status === 'Signé' ? 'bg-emerald-100 text-emerald-800' :
+                      q.status === 'En attente' ? 'bg-amber-100 text-amber-800' :
+                      q.status === 'Refusé' ? 'bg-rose-100 text-rose-800' :
+                      'bg-slate-100 text-slate-600'
+                    }`}>
+                      {q.status}
+                    </span>
+                  </td>
+                  <td className="p-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button className="p-1.5 text-slate-500 hover:text-slate-900 bg-slate-100 rounded-lg transition" title="Voir">
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+                      <button className="p-1.5 text-slate-500 hover:text-slate-900 bg-slate-100 rounded-lg transition" title="Télécharger">
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+  // 5. CLIENTS PAGE
+  const renderClientsPage = () => (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Rechercher un client..."
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-600 shadow-xs"
+          />
+        </div>
+        <button
+          onClick={() => setShowNewClientModal(true)}
+          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition"
+        >
+          <Plus className="w-4 h-4" /> Ajouter un Client
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {clients.map((client) => (
+          <div key={client.id} className="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-xs hover:border-blue-300 transition">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">{client.name}</h3>
+                <p className="text-xs text-blue-600 font-semibold">{client.company}</p>
+              </div>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${client.status === 'Actif' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}`}>
+                {client.status}
+              </span>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-600 pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <Mail className="w-3.5 h-3.5 text-slate-400" />
+                <span>{client.email}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-slate-400" />
+                <span>{client.phone}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                <span className="truncate">{client.address}</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-medium">Devis générés: <strong className="text-slate-900">{client.totalQuotes}</strong></span>
+              <button className="text-blue-600 hover:underline font-bold flex items-center gap-1">
+                Fiche Client <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // 6. AI ASSISTANT PAGE
+  const renderAIAssistantPage = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* Form */}
+      <div className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 space-y-6 shadow-xs">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold mb-3">
+            <Sparkles className="w-3.5 h-3.5" /> Générateur BTP IA
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Assistant Devis RéponseDevis</h2>
+          <p className="text-xs text-slate-500 mt-1 font-medium">
+            Entrez les détails de la visite de chantier. L'IA établira le chiffrage exact avec les prix du marché.
+          </p>
+        </div>
+
+        <form onSubmit={handleGenerateAIQuote} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-2">Description des travaux</label>
+            <textarea
+              rows={6}
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              placeholder="Exemple : Installation d'un tableau électrique Schneider 4 rangées, 4 lignes dédiées cuisine, pose 25 prises Odace Legrand et attestation Consuel..."
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600 focus:bg-white resize-none leading-relaxed"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isGenerating || !aiPrompt.trim()}
+            className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
+          >
+            {isGenerating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Calcul du chiffrage...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Générer le Devis IA
+              </>
+            )}
+          </button>
+        </form>
+      </div>
+
+      {/* Result Card */}
+      <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-xs">
+        {aiGeneratedQuote ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div>
+                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Proposition Générée</span>
+                <h3 className="text-lg font-bold text-slate-900 mt-0.5">{aiGeneratedQuote.title}</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setQuotes([{
+                    id: `DEV-2026-00${quotes.length + 1}`,
+                    clientName: 'Client IA',
+                    date: new Date().toISOString().split('T')[0],
+                    amount: aiGeneratedQuote.total,
+                    status: 'Brouillon',
+                    title: aiGeneratedQuote.title
+                  }, ...quotes]);
+                  showNotification('Devis IA ajouté avec succès !');
+                }}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" /> Valider & Enregistrer
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase">
+                    <th className="pb-2">Désignation</th>
+                    <th className="pb-2 text-center">Qté</th>
+                    <th className="pb-2 text-right">P.U HT</th>
+                    <th className="pb-2 text-right">Total HT</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {aiGeneratedQuote.items.map((item, index) => (
+                    <tr key={index}>
+                      <td className="py-2.5 text-slate-800 font-medium">{item.description}</td>
+                      <td className="py-2.5 text-center text-slate-500">{item.qty}</td>
+                      <td className="py-2.5 text-right text-slate-500">{item.unitPrice} €</td>
+                      <td className="py-2.5 text-right font-bold text-slate-900">{item.total} €</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-600">
+                <span>Sous-total HT</span>
+                <span>{aiGeneratedQuote.subtotal.toFixed(2)} €</span>
+              </div>
+              <div className="flex justify-between text-slate-600">
+                <span>TVA (10%)</span>
+                <span>{aiGeneratedQuote.vat.toFixed(2)} €</span>
+              </div>
+              <div className="pt-2 border-t border-slate-200 flex justify-between font-black text-slate-900 text-sm">
+                <span>Total TTC</span>
+                <span className="text-blue-600">{aiGeneratedQuote.total.toFixed(2)} €</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center p-8">
+            <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mb-4">
+              <Bot className="w-8 h-8" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 mb-1">Aperçu du Devis</h3>
+            <p className="text-xs text-slate-500 max-w-sm">
+              Inscrivez les détails du projet sur la gauche pour afficher le devis détaillé.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // 7. SETTINGS PAGE
+  const renderSettingsPage = () => (
+    <div className="max-w-4xl bg-white border border-slate-200 rounded-2xl p-8 space-y-8 shadow-xs">
+      <div>
+        <h2 className="text-xl font-bold text-slate-900">Paramètres de l'Entreprise</h2>
+        <p className="text-xs text-slate-500 mt-1 font-medium">Informations affichées sur vos devis officiels.</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-1.5">Raison Sociale</label>
+          <input
+            type="text"
+            defaultValue="Bernard Électricité & Rénov"
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-1.5">Numéro SIRET</label>
+          <input
+            type="text"
+            defaultValue="812 345 678 00019"
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-1.5">TVA Intracommunautaire</label>
+          <input
+            type="text"
+            defaultValue="FR 32 812345678"
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-1.5">Assurance Décennale</label>
+          <input
+            type="text"
+            defaultValue="AXA Assurances Pro #DEC-998877"
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+          />
+        </div>
+      </div>
+
+      <div className="pt-6 border-t border-slate-100 flex justify-end">
+        <button
+          onClick={() => showNotification('Paramètres mis à jour !')}
+          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition"
+        >
+          Enregistrer
+        </button>
+      </div>
+    </div>
+  );
+
+  // --- MODALS ---
+
+  const renderNewQuoteModal = () => (
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-xl">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <h3 className="text-base font-bold text-slate-900">Nouveau Devis</h3>
+          <button onClick={() => setShowNewQuoteModal(false)} className="text-slate-400 hover:text-slate-700">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleCreateQuote} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Nom du Client</label>
+            <input
+              type="text"
+              required
+              value={newQuoteData.clientName}
+              onChange={(e) => setNewQuoteData({ ...newQuoteData, clientName: e.target.value })}
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Prestation</label>
+            <input
+              type="text"
+              required
+              value={newQuoteData.title}
+              onChange={(e) => setNewQuoteData({ ...newQuoteData, title: e.target.value })}
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Montant HT (€)</label>
+            <input
+              type="number"
+              required
+              value={newQuoteData.amount}
+              onChange={(e) => setNewQuoteData({ ...newQuoteData, amount: e.target.value })}
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+            />
+          </div>
+
+          <div className="pt-4 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowNewQuoteModal(false)}
+              className="px-4 py-2 text-xs text-slate-500 font-bold"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition"
+            >
+              Créer le devis
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
+  const renderNewClientModal = () => (
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-xl">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <h3 className="text-base font-bold text-slate-900">Ajouter un Client</h3>
+          <button onClick={() => setShowNewClientModal(false)} className="text-slate-400 hover:text-slate-700">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleCreateClient} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Nom Prénom</label>
+            <input
+              type="text"
+              required
+              value={newClientData.name}
+              onChange={(e) => setNewClientData({ ...newClientData, name: e.target.value })}
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Société</label>
+            <input
+              type="text"
+              value={newClientData.company}
+              onChange={(e) => setNewClientData({ ...newClientData, company: e.target.value })}
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Email</label>
+            <input
+              type="email"
+              required
+              value={newClientData.email}
+              onChange={(e) => setNewClientData({ ...newClientData, email: e.target.value })}
+              className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+            />
+          </div>
+
+          <div className="pt-4 flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowNewClientModal(false)}
+              className="px-4 py-2 text-xs text-slate-500 font-bold"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition"
+            >
+              Enregistrer client
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+
+  // RENDER APP
+  if (currentPage === 'landing') return renderLandingPage();
+  if (currentPage === 'login') return renderLoginPage();
+
+  return (
+    <div className="min-h-screen bg-slate-100 text-slate-800 flex font-sans antialiased">
+      {toast && (
+        <div className="fixed bottom-5 right-5 z-50 bg-blue-600 text-white px-4 py-3 rounded-xl shadow-2xl text-xs font-bold flex items-center gap-2 animate-bounce">
+          <Sparkles className="w-4 h-4" />
+          {toast}
+        </div>
+      )}
+
+      {renderSidebar()}
+
+      <div className="flex-1 flex flex-col min-w-0">
+        {renderHeader(
+          currentPage === 'dashboard' ? 'Tableau de Bord' :
+          currentPage === 'quotes' ? 'Gestion des Devis' :
+          currentPage === 'clients' ? 'Répertoire Clients' :
+          currentPage === 'ai-assistant' ? 'Assistant Devis IA' : 'Paramètres',
+          'RéponseDevis AI • SaaS B2B Artisan'
+        )}
+
+        <main className="p-6 overflow-y-auto flex-1">
+          {currentPage === 'dashboard' && renderDashboardPage()}
+          {currentPage === 'quotes' && renderQuotesPage()}
+          {currentPage === 'clients' && renderClientsPage()}
+          {currentPage === 'ai-assistant' && renderAIAssistantPage()}
+          {currentPage === 'settings' && renderSettingsPage()}
+        </main>
+      </div>
+
+      {showNewQuoteModal && renderNewQuoteModal()}
+      {showNewClientModal && renderNewClientModal()}
+    </div>
+  );
+}
